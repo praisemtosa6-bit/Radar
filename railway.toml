@@ -1,3 +1,7 @@
+# Use Nixpacks builder to support both PHP and Node.js
+[build]
+builder = "NIXPACKS"
+
 [deploy]
 startCommand = "mkdir -p storage/whatsapp-session && touch database/database.sqlite && php artisan migrate --force && (node whatsapp-bridge.js &) && (php artisan schedule:work &) && php artisan serve --host=0.0.0.0 --port=$PORT"
 healthcheckPath = "/health"
