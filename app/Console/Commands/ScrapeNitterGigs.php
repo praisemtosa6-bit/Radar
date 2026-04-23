@@ -36,9 +36,11 @@ class ScrapeNitterGigs extends Command
         
         $instances = [
             'nitter.poast.org',
-            'nitter.cz',
             'nitter.privacydev.net',
-            'nitter.net',
+            'nitter.projectsegfau.lt',
+            'nitter.pericles.xyz',
+            'nitter.rawbit.ninja',
+            'nitter.rocks',
         ];
 
         $xml = null;
@@ -46,6 +48,7 @@ class ScrapeNitterGigs extends Command
         foreach ($instances as $instance) {
             $rssUrl = "https://{$instance}/search/rss?f=tweets&q={$encodedQuery}";
             $this->info("Fetching RSS from: {$rssUrl}");
+            Log::info("Radar Scraper: Fetching RSS from {$instance}");
 
             try {
                 $response = Http::timeout(10)->get($rssUrl);
@@ -54,16 +57,20 @@ class ScrapeNitterGigs extends Command
                     $xml = simplexml_load_string($response->body());
                     if ($xml && isset($xml->channel->item)) {
                         $this->info("Successfully fetched from {$instance}");
+                        Log::info("Radar Scraper: Successfully fetched from {$instance}");
                         break; // Success! Exit loop.
                     }
                 }
+                Log::warning("Radar Scraper: {$instance} returned non-successful response or empty XML.");
             } catch (\Exception $e) {
                 $this->warn("Failed connecting to {$instance}. Trying next...");
+                Log::error("Radar Scraper Error: " . $e->getMessage());
             }
         }
 
         if (!$xml || !isset($xml->channel->item)) {
             $this->error('No items found or all Nitter instances failed.');
+            Log::error('Radar Scraper: All Nitter instances failed or no items found.');
             return;
         }
 
@@ -76,10 +83,14 @@ class ScrapeNitterGigs extends Command
 
                 $this->info("Found Gig: {$title}");
                 $this->line("Link: {$link}");
+                
                 // Check if we have already alerted about this gig
                 if (Gig::where('url', $link)->exists()) {
+                    Log::info("Radar Scraper: Skipping already notified gig: {$title}");
                     continue;
                 }
+
+                Log::info("Radar Scraper: NEW GIG DETECTED! Sending alerts for: {$title}");
 
                 // Store in Database to prevent duplicate WhatsApp messages
                 Gig::create([

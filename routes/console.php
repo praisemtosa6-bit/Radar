@@ -10,5 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('gigs:scrape-nitter')
     ->everyFiveMinutes()
-    ->withoutOverlapping()   // prevents stacking if the previous run hasn't finished
-    ->runInBackground();     // runs without blocking other scheduled tasks
+    ->withoutOverlapping();
