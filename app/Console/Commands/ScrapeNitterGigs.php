@@ -120,23 +120,16 @@ class ScrapeNitterGigs extends Command
 
     private function sendWhatsAppAlert($title, $link, $description, $pubDate)
     {
-        $twilioSid = env('TWILIO_SID');
-        $twilioToken = env('TWILIO_TOKEN');
-        $twilioWhatsAppNumber = env('TWILIO_WHATSAPP_NUMBER'); 
         $recipientNumber = env('ADMIN_WHATSAPP_NUMBER'); 
 
-        if (!$twilioSid || !$twilioToken || !$twilioWhatsAppNumber || !$recipientNumber) {
-            $this->error('Twilio credentials missing in .env');
+        if (!$recipientNumber) {
+            $this->error('ADMIN_WHATSAPP_NUMBER missing in .env');
             return false;
         }
 
-        // Parse time to "2 hours ago" format
         $timeAgo = \Carbon\Carbon::parse($pubDate)->diffForHumans();
-        
-        // Clean up the description to look more like requirements/details
         $cleanDescription = trim($description);
 
-        // Build the WhatsApp message template
         $messageBody = "Hey Praise 👋 there's a new gig on *X (Twitter)* you might want to check out!\n\n"
             . "🎯 *{$title}*\n\n"
             . "⏰ *Posted:* {$timeAgo}\n\n"
@@ -146,19 +139,25 @@ class ScrapeNitterGigs extends Command
             . "─────────────────\n"
             . "*Radar* • finding what's yours";
         
-        $response = Http::withBasicAuth($twilioSid, $twilioToken)
-            ->asForm()
-            ->post("https://api.twilio.com/2010-04-01/Accounts/{$twilioSid}/Messages.json", [
-                'From' => $twilioWhatsAppNumber,
-                'To' => $recipientNumber,
-                'Body' => $messageBody
+        try {
+            // Hit our local Node.js bridge
+            $response = Http::timeout(5)->post("http://localhost:3000/send", [
+                'phone' => $recipientNumber,
+                'message' => $messageBody
             ]);
 
-        if ($response->successful()) {
-            $this->line("<info>WhatsApp message sent to {$recipientNumber} for: {$title}</info>\n");
-            return true;
-        } else {
-            $this->error("Failed to send WhatsApp message: " . $response->body());
+            if ($response->successful()) {
+                $this->line("<info>WhatsApp message sent via Baileys for: {$title}</info>\n");
+                Log::info("Radar: WhatsApp message sent via Baileys for: {$title}");
+                return true;
+            } else {
+                $this->error("WhatsApp Bridge error: " . $response->body());
+                Log::error("Radar: WhatsApp Bridge error: " . $response->body());
+                return false;
+            }
+        } catch (\Exception $e) {
+            $this->error("Failed to connect to WhatsApp Bridge: " . $e->getMessage());
+            Log::error("Radar: Failed to connect to WhatsApp Bridge: " . $e->getMessage());
             return false;
         }
     }
