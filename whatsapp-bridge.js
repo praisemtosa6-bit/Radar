@@ -1,13 +1,16 @@
-const { 
-    default: makeWASocket, 
+import makeWASocket, { 
     DisconnectReason, 
     useMultiFileAuthState 
-} = require('@whiskeysockets/baileys');
-const { Boom } = require('@hapi/boom');
-const express = require('express');
-const qrcode = require('qrcode-terminal');
-const pino = require('pino');
-const path = require('path');
+} from '@whiskeysockets/baileys';
+import { Boom } from '@hapi/boom';
+import express from 'express';
+import qrcode from 'qrcode-terminal';
+import pino from 'pino';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
@@ -17,7 +20,6 @@ let sock;
 let isConnected = false;
 
 async function connectToWhatsApp() {
-    // Session storage in a folder that should be mounted as a Volume in Railway
     const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, 'storage/whatsapp-session'));
     
     sock = makeWASocket({
@@ -32,7 +34,7 @@ async function connectToWhatsApp() {
         const { connection, lastDisconnect, qr } = update;
         
         if (qr) {
-            console.log('--- SCAN THIS QR CODE WITH WHATSAPP ---');
+            console.log('\n--- SCAN THIS QR CODE WITH WHATSAPP ---');
             qrcode.generate(qr, { small: true });
         }
 
@@ -51,20 +53,13 @@ async function connectToWhatsApp() {
     });
 }
 
-// API endpoint for Laravel to send messages
 app.post('/send', async (req, res) => {
     const { phone, message } = req.body;
-
-    if (!isConnected) {
-        return res.status(503).json({ error: 'WhatsApp not connected' });
-    }
-
-    if (!phone || !message) {
-        return res.status(400).json({ error: 'Phone and message are required' });
-    }
+    if (!isConnected) return res.status(503).json({ error: 'WhatsApp not connected' });
+    if (!phone || !message) return res.status(400).json({ error: 'Phone and message are required' });
 
     try {
-        const jid = phone.includes('@s.whatsapp.net') ? phone : `${phone.replace('+', '')}@s.whatsapp.net`;
+        const jid = phone.includes('@s.whatsapp.net') ? phone : `${phone.replace(/\D/g, '')}@s.whatsapp.net`;
         await sock.sendMessage(jid, { text: message });
         res.json({ success: true });
     } catch (error) {
@@ -73,7 +68,6 @@ app.post('/send', async (req, res) => {
     }
 });
 
-// Health check for Railway
 app.get('/health', (req, res) => {
     res.json({ status: isConnected ? 'connected' : 'connecting' });
 });
