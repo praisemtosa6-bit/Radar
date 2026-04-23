@@ -1,6 +1,7 @@
 import makeWASocket, { 
     DisconnectReason, 
-    useMultiFileAuthState 
+    useMultiFileAuthState,
+    Browsers
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import express from 'express';
@@ -25,6 +26,9 @@ async function connectToWhatsApp() {
     sock = makeWASocket({
         auth: state,
         printQRInTerminal: true,
+        version: [2, 3000, 1037641644],
+        browser: ['Chrome (Mac)', 'Chrome', '110.0.5481.177'],
+        syncFullHistory: false,
         logger: pino({ level: 'silent' }),
     });
 
@@ -40,6 +44,7 @@ async function connectToWhatsApp() {
 
         if (connection === 'close') {
             isConnected = false;
+            console.error('❌ Connection closed due to:', lastDisconnect.error);
             const shouldReconnect = (lastDisconnect.error instanceof Boom) 
                 ? lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut 
                 : true;
