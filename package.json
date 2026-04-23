@@ -1,6 +1,10 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
+    "name": "radar",
     "private": true,
+    "engines": {
+        "node": "20.x"
+    },
     "type": "module",
     "scripts": {
         "build": "vite build",
