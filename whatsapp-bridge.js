@@ -1,11 +1,9 @@
 import makeWASocket, { 
     DisconnectReason, 
-    useMultiFileAuthState,
-    Browsers
+    useMultiFileAuthState
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import express from 'express';
-import qrcode from 'qrcode-terminal';
 import pino from 'pino';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -17,15 +15,19 @@ const app = express();
 app.use(express.json());
 
 const PORT = process.env.WHATSAPP_PORT || 3000;
+
+// Set ADMIN_WHATSAPP_NUMBER in Railway env vars (e.g. 27821234567 - no + or spaces)
+const PHONE_NUMBER = process.env.ADMIN_WHATSAPP_NUMBER;
+
 let sock;
 let isConnected = false;
+let pairingCodeRequested = false;
 
 async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, 'storage/whatsapp-session'));
     
     sock = makeWASocket({
         auth: state,
-        printQRInTerminal: true,
         version: [2, 3000, 1037641644],
         browser: ['Chrome (Mac)', 'Chrome', '110.0.5481.177'],
         syncFullHistory: false,
@@ -34,26 +36,42 @@ async function connectToWhatsApp() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    sock.ev.on('connection.update', (update) => {
+    sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
         
-        if (qr) {
+        // Use pairing code instead of QR if phone number is set
+        if (qr && PHONE_NUMBER && !pairingCodeRequested) {
+            pairingCodeRequested = true;
+            try {
+                // Small delay to let the socket register first
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                const code = await sock.requestPairingCode(PHONE_NUMBER);
+                console.log('\n========================================');
+                console.log(`   YOUR WHATSAPP PAIRING CODE: ${code}`);
+                console.log('========================================');
+                console.log('Go to WhatsApp > Settings > Linked Devices > Link a Device');
+                console.log('Tap "Link with phone number" and enter the code above.\n');
+            } catch (err) {
+                console.error('Failed to request pairing code:', err.message);
+            }
+        } else if (qr && !PHONE_NUMBER) {
+            // Fallback: print QR if no phone number is configured
             console.log('\n--- SCAN THIS QR CODE WITH WHATSAPP ---');
-            qrcode.generate(qr, { small: true });
+            console.log('(Set ADMIN_WHATSAPP_NUMBER env var to use pairing code instead)');
         }
 
         if (connection === 'close') {
             isConnected = false;
-            console.error('❌ Connection closed due to:', lastDisconnect.error);
-            const shouldReconnect = (lastDisconnect.error instanceof Boom) 
+            pairingCodeRequested = false;
+            const shouldReconnect = (lastDisconnect?.error instanceof Boom) 
                 ? lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut 
                 : true;
             
-            console.log('Connection closed. Reconnecting...', shouldReconnect);
+            console.log('Connection closed. Reconnecting:', shouldReconnect);
             if (shouldReconnect) connectToWhatsApp();
         } else if (connection === 'open') {
             isConnected = true;
-            console.log('✅ WhatsApp Bridge: Connected to WhatsApp');
+            console.log('✅ WhatsApp Bridge: Connected!');
         }
     });
 }
