@@ -1,5 +1,5 @@
 [deploy]
-startCommand = "mkdir -p storage/whatsapp-session && touch database/database.sqlite && php artisan migrate --force && npx concurrently \"php artisan serve --host=0.0.0.0 --port=$PORT\" \"node whatsapp-bridge.js\" \"php artisan schedule:work\""
+startCommand = "mkdir -p storage/whatsapp-session && touch database/database.sqlite && php artisan migrate --force && (node whatsapp-bridge.js &) && (php artisan schedule:work &) && php artisan serve --host=0.0.0.0 --port=$PORT"
 healthcheckPath = "/health"
 healthcheckTimeout = 120
 restartPolicyType = "on_failure"
