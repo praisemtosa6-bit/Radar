@@ -1,7 +1,9 @@
 import makeWASocket, { 
     DisconnectReason, 
-    useMultiFileAuthState
+    useMultiFileAuthState,
+    fetchLatestBaileysVersion
 } from '@whiskeysockets/baileys';
+import qrcode from 'qrcode-terminal';
 import { Boom } from '@hapi/boom';
 import express from 'express';
 import pino from 'pino';
@@ -25,10 +27,12 @@ let pairingCodeRequested = false;
 
 async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, 'storage/whatsapp-session'));
+    const { version, isLatest } = await fetchLatestBaileysVersion();
+    console.log(`using WA v${version.join('.')}, isLatest: ${isLatest}`);
     
     sock = makeWASocket({
         auth: state,
-        version: [2, 3000, 1037641644],
+        version: version,
         browser: ['Chrome (Mac)', 'Chrome', '110.0.5481.177'],
         syncFullHistory: false,
         logger: pino({ level: 'silent' }),
@@ -57,6 +61,7 @@ async function connectToWhatsApp() {
         } else if (qr && !PHONE_NUMBER) {
             // Fallback: print QR if no phone number is configured
             console.log('\n--- SCAN THIS QR CODE WITH WHATSAPP ---');
+            qrcode.generate(qr, { small: true });
             console.log('(Set ADMIN_WHATSAPP_NUMBER env var to use pairing code instead)');
         }
 
