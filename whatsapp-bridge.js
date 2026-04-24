@@ -77,6 +77,18 @@ async function connectToWhatsApp() {
         } else if (connection === 'open') {
             isConnected = true;
             console.log('✅ WhatsApp Bridge: Connected!');
+            // Send confirmation message to admin on connect
+            if (PHONE_NUMBER) {
+                try {
+                    const jid = `${PHONE_NUMBER}@s.whatsapp.net`;
+                    await sock.sendMessage(jid, { 
+                        text: '🚀 Welcome to Radar! Your WhatsApp bridge is now live and connected.' 
+                    });
+                    console.log(`✅ Confirmation message sent to ${PHONE_NUMBER}`);
+                } catch (err) {
+                    console.error('Failed to send confirmation message:', err.message);
+                }
+            }
         }
     });
 }
