@@ -24,6 +24,7 @@ const PHONE_NUMBER = process.env.ADMIN_WHATSAPP_NUMBER;
 let sock;
 let isConnected = false;
 let pairingCodeRequested = false;
+let welcomeSent = false;
 
 async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, 'storage/whatsapp-session'));
@@ -68,22 +69,23 @@ async function connectToWhatsApp() {
         if (connection === 'close') {
             isConnected = false;
             pairingCodeRequested = false;
-            const shouldReconnect = (lastDisconnect?.error instanceof Boom) 
-                ? lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut 
-                : true;
+            const reason = (lastDisconnect?.error instanceof Boom) 
+                ? lastDisconnect.error.output.statusCode 
+                : 'unknown';
             
-            console.log('Connection closed. Reconnecting:', shouldReconnect);
+            console.log(`Connection closed. Reason: ${reason}. Reconnecting: ${shouldReconnect}`);
             if (shouldReconnect) connectToWhatsApp();
         } else if (connection === 'open') {
             isConnected = true;
             console.log('✅ WhatsApp Bridge: Connected!');
-            // Send confirmation message to admin on connect
-            if (PHONE_NUMBER) {
+            // Send confirmation message to admin on connect (only once per restart)
+            if (PHONE_NUMBER && !welcomeSent) {
                 try {
                     const jid = `${PHONE_NUMBER}@s.whatsapp.net`;
                     await sock.sendMessage(jid, { 
                         text: '🚀 Welcome to Radar! Your WhatsApp bridge is now live and connected.' 
                     });
+                    welcomeSent = true;
                     console.log(`✅ Confirmation message sent to ${PHONE_NUMBER}`);
                 } catch (err) {
                     console.error('Failed to send confirmation message:', err.message);
