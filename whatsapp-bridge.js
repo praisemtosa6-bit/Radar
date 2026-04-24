@@ -1,7 +1,8 @@
 import makeWASocket, { 
     DisconnectReason, 
     useMultiFileAuthState,
-    fetchLatestBaileysVersion
+    fetchLatestBaileysVersion,
+    makeCacheableSignalKeyStore
 } from '@whiskeysockets/baileys';
 import qrcode from 'qrcode-terminal';
 import { Boom } from '@hapi/boom';
@@ -13,13 +14,14 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const logger = pino({ level: 'silent' });
 const app = express();
 app.use(express.json());
 
 const PORT = process.env.WHATSAPP_PORT || 3000;
 
 // Set ADMIN_WHATSAPP_NUMBER in Railway env vars (e.g. 27821234567 - no + or spaces)
-const PHONE_NUMBER = process.env.ADMIN_WHATSAPP_NUMBER;
+const PHONE_NUMBER = process.env.ADMIN_WHATSAPP_NUMBER ? process.env.ADMIN_WHATSAPP_NUMBER.replace(/\D/g, '') : null;
 
 let sock;
 let isConnected = false;
@@ -32,11 +34,14 @@ async function connectToWhatsApp() {
     console.log(`using WA v${version.join('.')}, isLatest: ${isLatest}`);
     
     sock = makeWASocket({
-        auth: state,
+        auth: {
+            creds: state.creds,
+            keys: makeCacheableSignalKeyStore(state.keys, logger),
+        },
         version: version,
         browser: ['Chrome (Mac)', 'Chrome', '110.0.5481.177'],
         syncFullHistory: false,
-        logger: pino({ level: 'silent' }),
+        logger: logger,
     });
 
     sock.ev.on('creds.update', saveCreds);
