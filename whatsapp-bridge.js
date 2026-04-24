@@ -80,16 +80,19 @@ async function connectToWhatsApp() {
             console.log('✅ WhatsApp Bridge: Connected!');
             // Send confirmation message to admin on connect (only once per restart)
             if (PHONE_NUMBER && !welcomeSent) {
-                try {
-                    const jid = `${PHONE_NUMBER}@s.whatsapp.net`;
-                    await sock.sendMessage(jid, { 
-                        text: '🚀 Welcome to Radar! Your WhatsApp bridge is now live and connected.' 
-                    });
-                    welcomeSent = true;
-                    console.log(`✅ Confirmation message sent to ${PHONE_NUMBER}`);
-                } catch (err) {
-                    console.error('Failed to send confirmation message:', err.message);
-                }
+                // Wait 10 seconds for the session to fully stabilize before sending
+                setTimeout(async () => {
+                    try {
+                        const jid = `${PHONE_NUMBER}@s.whatsapp.net`;
+                        await sock.sendMessage(jid, { 
+                            text: '🚀 Welcome to Radar! Your WhatsApp bridge is now live and connected.' 
+                        });
+                        welcomeSent = true;
+                        console.log(`✅ Confirmation message sent to ${PHONE_NUMBER}`);
+                    } catch (err) {
+                        console.error('Failed to send confirmation message:', err.message);
+                    }
+                }, 10000);
             }
         }
     });
