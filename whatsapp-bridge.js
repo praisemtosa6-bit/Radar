@@ -74,10 +74,11 @@ async function connectToWhatsApp() {
         if (connection === 'close') {
             isConnected = false;
             pairingCodeRequested = false;
-            const reason = (lastDisconnect?.error instanceof Boom) 
-                ? lastDisconnect.error.output.statusCode 
+            const reason = (lastDisconnect?.error instanceof Boom)
+                ? lastDisconnect.error.output.statusCode
                 : 'unknown';
-            
+            const shouldReconnect = reason !== DisconnectReason.loggedOut;
+
             console.log(`Connection closed. Reason: ${reason}. Reconnecting: ${shouldReconnect}`);
             if (shouldReconnect) connectToWhatsApp();
         } else if (connection === 'open') {
