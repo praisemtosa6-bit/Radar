@@ -11,3 +11,11 @@ Artisan::command('inspire', function () {
 Schedule::command('gigs:scrape-nitter')
     ->everyFiveMinutes()
     ->withoutOverlapping();
+
+Schedule::command('opportunities:scrape')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping();
+
+Schedule::command('opportunities:scrape-feeds')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping();
