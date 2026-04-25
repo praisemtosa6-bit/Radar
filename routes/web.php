@@ -36,7 +36,7 @@ Route::get('/preferences', function () {
     return view('preferences');
 });
 
-Route::post('/debug/opportunities/scrape', function () {
+Route::match(['get', 'post'], '/debug/opportunities/scrape', function () {
     echo "<h1>Radar Debugger — Opportunity Scraper</h1>";
     echo "Starting scrape...<br>";
 
@@ -54,7 +54,7 @@ Route::post('/debug/opportunities/scrape', function () {
     return "<br>Done.";
 });
 
-Route::post('/debug/feeds/scrape', function () {
+Route::match(['get', 'post'], '/debug/feeds/scrape', function () {
     echo "<h1>Radar Debugger — Freelance Feed Scraper</h1>";
     echo "Starting RSS feed scrape...<br>";
 
