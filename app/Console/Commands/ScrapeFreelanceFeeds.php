@@ -18,53 +18,6 @@ class ScrapeFreelanceFeeds extends Command
 {
     // Each entry: [url, source, tags hint for RSS feeds that don't embed tags]
     private array $feeds = [
-        // ── Upwork keyword RSS searches ──────────────────────────────────────
-        [
-            'url'    => 'https://www.upwork.com/ab/feed/jobs/rss?q=video+editor+reels&paging=0%3B50',
-            'source' => 'upwork',
-            'tags'   => ['video editing', 'reels', 'short-form'],
-        ],
-        [
-            'url'    => 'https://www.upwork.com/ab/feed/jobs/rss?q=podcast+editor+audio&paging=0%3B50',
-            'source' => 'upwork',
-            'tags'   => ['podcast', 'audio editing'],
-        ],
-        [
-            'url'    => 'https://www.upwork.com/ab/feed/jobs/rss?q=faceless+youtube+channel&paging=0%3B50',
-            'source' => 'upwork',
-            'tags'   => ['faceless youtube', 'youtube automation'],
-        ],
-        [
-            'url'    => 'https://www.upwork.com/ab/feed/jobs/rss?q=youtube+automation+editor&paging=0%3B50',
-            'source' => 'upwork',
-            'tags'   => ['youtube automation', 'video editing'],
-        ],
-        [
-            'url'    => 'https://www.upwork.com/ab/feed/jobs/rss?q=short+form+video+tiktok+editor&paging=0%3B50',
-            'source' => 'upwork',
-            'tags'   => ['tiktok', 'short-form', 'video editing'],
-        ],
-        [
-            'url'    => 'https://www.upwork.com/ab/feed/jobs/rss?q=instagram+reels+editor&paging=0%3B50',
-            'source' => 'upwork',
-            'tags'   => ['instagram reels', 'video editing'],
-        ],
-        [
-            'url'    => 'https://www.upwork.com/ab/feed/jobs/rss?q=video+production+content+creator&paging=0%3B50',
-            'source' => 'upwork',
-            'tags'   => ['video production', 'content creation'],
-        ],
-        [
-            'url'    => 'https://www.upwork.com/ab/feed/jobs/rss?q=react+native+mobile+developer&paging=0%3B50',
-            'source' => 'upwork',
-            'tags'   => ['react native', 'mobile', 'developer'],
-        ],
-        [
-            'url'    => 'https://www.upwork.com/ab/feed/jobs/rss?q=web+developer+freelance&paging=0%3B50',
-            'source' => 'upwork',
-            'tags'   => ['web development', 'freelance'],
-        ],
-
         // ── We Work Remotely ─────────────────────────────────────────────────
         [
             'url'    => 'https://weworkremotely.com/categories/remote-design-jobs.rss',
@@ -87,41 +40,53 @@ class ScrapeFreelanceFeeds extends Command
             'tags'   => ['full-stack', 'programming', 'remote'],
         ],
 
-        // ── PeoplePerHour ────────────────────────────────────────────────────
+        // ── RemoteOK tag-specific RSS (same server as working API) ───────────
         [
-            'url'    => 'https://www.peopleperhour.com/freelance-jobs.rss',
-            'source' => 'peopleperhour',
-            'tags'   => ['freelance'],
-        ],
-
-        // ── Staff Me Up (media / production) ────────────────────────────────
-        [
-            'url'    => 'https://www.staffmeup.com/job-postings/rss_feed',
-            'source' => 'staffmeup',
-            'tags'   => ['media', 'production'],
-        ],
-
-        // ── Freelancer.com multimedia categories ─────────────────────────────
-        [
-            'url'    => 'https://www.freelancer.com/jobs/video-services/rss.xml',
-            'source' => 'freelancer',
+            'url'    => 'https://remoteok.com/remote-video-jobs.rss',
+            'source' => 'remoteok',
             'tags'   => ['video', 'video editing'],
         ],
         [
-            'url'    => 'https://www.freelancer.com/jobs/audio-services/rss.xml',
-            'source' => 'freelancer',
-            'tags'   => ['audio', 'podcast', 'sound'],
+            'url'    => 'https://remoteok.com/remote-content-jobs.rss',
+            'source' => 'remoteok',
+            'tags'   => ['content creation', 'content'],
         ],
         [
-            'url'    => 'https://www.freelancer.com/jobs/multimedia/rss.xml',
-            'source' => 'freelancer',
-            'tags'   => ['multimedia'],
+            'url'    => 'https://remoteok.com/remote-design-jobs.rss',
+            'source' => 'remoteok',
+            'tags'   => ['design', 'creative'],
+        ],
+        [
+            'url'    => 'https://remoteok.com/remote-marketing-jobs.rss',
+            'source' => 'remoteok',
+            'tags'   => ['marketing', 'social media'],
+        ],
+
+        // ── Dribbble (design & creative) ─────────────────────────────────────
+        [
+            'url'    => 'https://dribbble.com/jobs.rss',
+            'source' => 'dribbble',
+            'tags'   => ['design', 'creative', 'ui/ux'],
+        ],
+
+        // ── Smashing Magazine Jobs (web, design, development) ────────────────
+        [
+            'url'    => 'https://jobs.smashingmagazine.com/jobs.rss',
+            'source' => 'smashing',
+            'tags'   => ['web', 'design', 'development'],
+        ],
+
+        // ── Mandy.com (film, TV, video production) ────────────────────────────
+        [
+            'url'    => 'https://www.mandy.com/jobs/rss',
+            'source' => 'mandy',
+            'tags'   => ['film', 'video production', 'tv', 'media'],
         ],
     ];
 
     public function handle()
     {
-        $isBaseline = !Opportunity::whereIn('source', ['upwork', 'weworkremotely', 'peopleperhour', 'staffmeup', 'freelancer'])->exists();
+        $isBaseline = !Opportunity::whereIn('source', ['weworkremotely', 'remoteok', 'dribbble', 'smashing', 'mandy'])->exists();
 
         if ($isBaseline) {
             $this->info("Empty database detected — running silent baseline scrape (no notifications).");
