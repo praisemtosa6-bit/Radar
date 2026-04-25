@@ -1,5 +1,5 @@
-import makeWASocket, { 
-    DisconnectReason, 
+import makeWASocket, {
+    DisconnectReason,
     useMultiFileAuthState,
     fetchLatestBaileysVersion,
     makeCacheableSignalKeyStore
@@ -10,6 +10,7 @@ import express from 'express';
 import pino from 'pino';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -77,10 +78,23 @@ async function connectToWhatsApp() {
             const reason = (lastDisconnect?.error instanceof Boom)
                 ? lastDisconnect.error.output.statusCode
                 : 'unknown';
-            const shouldReconnect = reason !== DisconnectReason.loggedOut;
+            const isLoggedOut = reason === DisconnectReason.loggedOut;
 
-            console.log(`Connection closed. Reason: ${reason}. Reconnecting: ${shouldReconnect}`);
-            if (shouldReconnect) connectToWhatsApp();
+            console.log(`Connection closed. Reason: ${reason}. Reconnecting: ${!isLoggedOut || true}`);
+
+            if (isLoggedOut) {
+                // Stale/expired session — wipe it so fresh pairing code is issued
+                const sessionPath = path.join(__dirname, 'storage/whatsapp-session');
+                try {
+                    fs.rmSync(sessionPath, { recursive: true, force: true });
+                    fs.mkdirSync(sessionPath, { recursive: true });
+                    console.log('Session cleared. Reconnecting for fresh pairing...');
+                } catch (e) {
+                    console.error('Failed to clear session:', e.message);
+                }
+            }
+
+            connectToWhatsApp();
         } else if (connection === 'open') {
             isConnected = true;
             console.log('✅ WhatsApp Bridge: Connected!');
